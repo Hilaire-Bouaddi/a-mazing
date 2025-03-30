@@ -6,7 +6,9 @@ use std::{thread::sleep, time::Duration};
 
 use macroquad::prelude::*;
 
-use constants::gui_constants::{CELL_COLOR, LEP_PATH_COLOR, PATH_COLOR, get_window_config};
+use constants::gui_constants::{
+    ACCENT_COLOR, CELL_COLOR, LEP_PATH_COLOR, PATH_COLOR, get_window_config,
+};
 use model::cell::Position;
 use model::grid::Grid;
 
@@ -98,7 +100,9 @@ fn display_grid(
     }
 
     if accent_on_last {
-        draw_cell(positions.last().unwrap().clone(), grid, YELLOW);
+        if let Some(last) = positions.last() {
+            draw_cell(last.to_owned(), grid, ACCENT_COLOR);
+        }
     }
 }
 
@@ -147,18 +151,51 @@ async fn animate_path_creation() {
     }
 }
 
-async fn animate_path_simplification(grid: &mut model::grid::Grid) {
-    let paths = maze_generator::mazify(grid);
+async fn animate_path_loop_erasure(
+    path: &maze_generator::Path,
+    lep: &maze_generator::Path,
+    grid: &model::grid::Grid,
+) {
+    let mut counter = path.length();
 
+    println!(
+        "Displaying path of length: {}, lep length: {}",
+        path.length(),
+        lep.length()
+    );
+    // Animate walk
     loop {
         clear_background(BLACK);
         display_grid(grid.get_cells_positions(), &grid, CELL_COLOR, false);
 
-        display_grid(paths.0.get_cells_positions(), &grid, PATH_COLOR, false);
-        display_grid(paths.1.get_cells_positions(), &grid, LEP_PATH_COLOR, false);
-        display_grid(vec![paths.0.get_cells_positions()[0]], &grid, YELLOW, false);
+        display_grid(
+            path.get_cells_positions()[0..counter].to_vec(),
+            &grid,
+            PATH_COLOR,
+            true,
+        );
 
-        next_frame().await
+        display_grid(vec![path.get_cells_positions()[0]], &grid, YELLOW, false);
+
+        if counter == path.length() {
+            display_grid(lep.get_cells_positions(), grid, LEP_PATH_COLOR, false);
+            next_frame().await;
+            sleep(Duration::from_millis(300));
+            break;
+        }
+        counter += 1;
+        next_frame().await;
+    }
+}
+
+async fn animate_maze_creation(grid: &mut model::grid::Grid) {
+    let internals = maze_generator::mazify(grid);
+    // for paths in internals.get_paths() {
+    //     animate_path_loop_erasure(&paths.0, &paths.1, &paths.2).await;
+    // }
+    loop {
+        display_grid(grid.get_cells_positions(), grid, CELL_COLOR, false);
+        next_frame().await;
     }
 }
 
@@ -170,5 +207,5 @@ async fn main() {
     );
 
     // animate_path_creation().await;
-    animate_path_simplification(&mut grid).await;
+    animate_maze_creation(&mut grid).await;
 }

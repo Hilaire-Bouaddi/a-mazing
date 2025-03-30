@@ -10,7 +10,7 @@ impl PartialEq for Position {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Cell {
     position: Position,
 }

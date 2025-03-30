@@ -1,5 +1,5 @@
 use macroquad::{
-    color::{Color, GRAY, GREEN, RED},
+    color::{Color, GRAY, GREEN, PURPLE, RED},
     window::Conf,
 };
 
@@ -10,7 +10,8 @@ pub const WALL_RATIO: f64 = 0.05;
 
 pub const CELL_COLOR: Color = GRAY;
 pub const PATH_COLOR: Color = GREEN;
-pub const LEP_PATH_COLOR: Color = RED;
+pub const LEP_PATH_COLOR: Color = PURPLE;
+pub const ACCENT_COLOR: Color = RED;
 
 pub fn get_window_config() -> Conf {
     Conf {

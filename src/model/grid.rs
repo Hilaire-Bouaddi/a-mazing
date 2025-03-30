@@ -4,6 +4,8 @@ use crate::model::cell::Cell;
 use crate::model::cell::Position;
 use std::collections::HashMap;
 
+use std::clone::Clone;
+
 pub struct Grid {
     number_of_cells_x: GridDimensionsIntegerType,
     number_of_cells_y: GridDimensionsIntegerType,
@@ -74,6 +76,21 @@ impl Grid {
         match self.neighbors.get(&pos1) {
             Some(neighbors) => neighbors.contains(&pos2),
             None => false,
+        }
+    }
+
+    pub fn get_neighbors(&self) -> &HashMap<Position, Vec<Position>> {
+        &self.neighbors
+    }
+}
+
+impl Clone for Grid {
+    fn clone(&self) -> Grid {
+        Self {
+            number_of_cells_x: self.number_of_cells_x,
+            number_of_cells_y: self.number_of_cells_y,
+            cells_per_pos: self.cells_per_pos.clone(),
+            neighbors: self.neighbors.clone(),
         }
     }
 }
