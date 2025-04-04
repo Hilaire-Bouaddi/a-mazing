@@ -46,6 +46,11 @@ impl Grid {
     }
 
     pub fn add_neighbor(&mut self, pos1: Position, pos2: Position) {
+        if pos1.x.abs_diff(pos2.x) + pos1.y.abs_diff(pos2.y) > 1 {
+            println!("{}", pos1.x.abs_diff(pos2.x) + pos1.y.abs_diff(pos2.y));
+            panic!("{:?}, {:?} shouldn't be neighbors!!", pos1, pos2);
+        }
+
         if !self.neighbors.contains_key(&pos1) {
             self.neighbors.insert(pos1, Vec::new());
         }
@@ -81,6 +86,14 @@ impl Grid {
 
     pub fn get_neighbors(&self) -> &HashMap<Position, Vec<Position>> {
         &self.neighbors
+    }
+
+    pub fn get_neighbors_of_pos(&self, pos: Position) -> Vec<Position> {
+        if let Some(neighbors) = self.neighbors.get(&pos) {
+            neighbors.clone()
+        } else {
+            Vec::new()
+        }
     }
 }
 

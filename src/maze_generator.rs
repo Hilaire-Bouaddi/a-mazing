@@ -220,10 +220,10 @@ pub fn mazify(grid: &mut Grid) -> MazeGenerationInternals {
         // the magic happens
         let path = random_walk(cell_to_visit_pos, grid, &visited);
         let lep: Path = loop_erased_path(&path, grid);
-
+        // println!("{:?}", path);
         let cell_positions = lep.get_cells_positions();
-        for i in 0..lep.length() {
-            let j = (i + 1) % lep.length();
+        for i in 0..lep.length() - 1 {
+            let j = i + 1;
             // println!(
             //     "Neighbors ({};{}) (){};{})",
             //     cell_positions[i].x, cell_positions[i].y, cell_positions[j].x, cell_positions[j].y
@@ -245,7 +245,7 @@ pub fn mazify(grid: &mut Grid) -> MazeGenerationInternals {
         // println!("pth size {}", path.cells.len());
         // paths_from_wilson.push(path);
         paths_from_wilson.push((path, lep, grid.clone()));
-        println!("counter {}", counter);
+
         counter += 1;
     }
     MazeGenerationInternals {

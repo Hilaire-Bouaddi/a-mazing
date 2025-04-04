@@ -1,6 +1,7 @@
 mod constants;
 mod maze_generator;
 mod model;
+mod mouse;
 
 use std::{thread::sleep, time::Duration};
 
@@ -9,8 +10,11 @@ use macroquad::prelude::*;
 use constants::gui_constants::{
     ACCENT_COLOR, CELL_COLOR, LEP_PATH_COLOR, PATH_COLOR, get_window_config,
 };
+use maze_generator::MazeGenerationInternals;
 use model::cell::Position;
 use model::grid::Grid;
+use mouse::Algo;
+use mouse::BFSMouse;
 
 fn game_coord_to_window_coord(x: usize, y: usize, grid_size: (u16, u16)) -> (usize, usize) {
     let window_x: usize = x * constants::gui_constants::WINDOW_SIZE_X / grid_size.0 as usize;
@@ -106,29 +110,10 @@ fn display_grid(
     }
 }
 
-async fn animate_path_creation() {
-    let mut grid = model::grid::Grid::new(
-        constants::game_constants::NUMBER_OF_CELLS_X,
-        constants::game_constants::NUMBER_OF_CELLS_Y,
-    );
-    let mut initial_pos = grid.get_cells_positions()[0];
-    let mut visited = vec![initial_pos];
-    let mut path = maze_generator::random_walk(initial_pos, &mut grid, &visited);
-    let mut count = 1;
+async fn animate_path(path: Vec<Position>, grid: &Grid) {
+    let mut count = 0;
     loop {
         clear_background(BLACK);
-
-        if count >= path.length() {
-            count = 1;
-            grid = model::grid::Grid::new(
-                constants::game_constants::NUMBER_OF_CELLS_X,
-                constants::game_constants::NUMBER_OF_CELLS_Y,
-            );
-            initial_pos = grid.get_cells_positions()[0];
-            visited = vec![initial_pos];
-            path = maze_generator::random_walk(initial_pos, &mut grid, &visited);
-            sleep(Duration::from_millis(500));
-        }
 
         display_grid(
             grid.get_cells_positions(),
@@ -136,67 +121,52 @@ async fn animate_path_creation() {
             constants::gui_constants::CELL_COLOR,
             false,
         );
-
-        sleep(Duration::from_millis(50));
-
         display_grid(
-            path.get_cells_positions()[0..count].to_vec(),
+            path[0..count].to_vec(),
             &grid,
             constants::gui_constants::PATH_COLOR,
             true,
         );
-        count += 1;
+        // sleep(Duration::from_millis(50));
+
+        if count < path.len() {
+            count += 1;
+        }
 
         next_frame().await
     }
 }
 
-async fn animate_path_loop_erasure(
+async fn display_path_loop_erasure(
     path: &maze_generator::Path,
     lep: &maze_generator::Path,
     grid: &model::grid::Grid,
 ) {
-    let mut counter = path.length();
-
     println!(
         "Displaying path of length: {}, lep length: {}",
         path.length(),
         lep.length()
     );
     // Animate walk
-    loop {
-        clear_background(BLACK);
-        display_grid(grid.get_cells_positions(), &grid, CELL_COLOR, false);
+    clear_background(BLACK);
+    display_grid(grid.get_cells_positions(), &grid, CELL_COLOR, false);
+    display_grid(path.get_cells_positions(), &grid, PATH_COLOR, true);
+    display_grid(vec![path.get_cells_positions()[0]], &grid, YELLOW, false);
 
-        display_grid(
-            path.get_cells_positions()[0..counter].to_vec(),
-            &grid,
-            PATH_COLOR,
-            true,
-        );
-
-        display_grid(vec![path.get_cells_positions()[0]], &grid, YELLOW, false);
-
-        if counter == path.length() {
-            display_grid(lep.get_cells_positions(), grid, LEP_PATH_COLOR, false);
-            next_frame().await;
-            sleep(Duration::from_millis(300));
-            break;
-        }
-        counter += 1;
-        next_frame().await;
-    }
+    display_grid(lep.get_cells_positions(), grid, LEP_PATH_COLOR, false);
+    next_frame().await;
+    sleep(Duration::from_millis(500));
 }
 
-async fn animate_maze_creation(grid: &mut model::grid::Grid) {
-    let internals = maze_generator::mazify(grid);
-    // for paths in internals.get_paths() {
-    //     animate_path_loop_erasure(&paths.0, &paths.1, &paths.2).await;
-    // }
-    loop {
-        display_grid(grid.get_cells_positions(), grid, CELL_COLOR, false);
-        next_frame().await;
+async fn animate_maze_creation(grid: &model::grid::Grid, internals: &MazeGenerationInternals) {
+    for paths in internals.get_paths() {
+        display_path_loop_erasure(&paths.0, &paths.1, &paths.2).await;
     }
+
+    // loop {
+    //     display_grid(grid.get_cells_positions(), grid, CELL_COLOR, false);
+    //     next_frame().await;
+    // }
 }
 
 #[macroquad::main(get_window_config)]
@@ -206,6 +176,19 @@ async fn main() {
         constants::game_constants::NUMBER_OF_CELLS_Y,
     );
 
-    // animate_path_creation().await;
-    animate_maze_creation(&mut grid).await;
+    let internals = maze_generator::mazify(&mut grid);
+    // animate_maze_creation(&grid, &internals).await;
+    let mouse: BFSMouse = BFSMouse::new(Position { x: 0, y: 0 });
+    let mouse_path = mouse.solve(
+        Position {
+            x: grid.get_number_of_cells_x_y().0 as usize - 1,
+            y: grid.get_number_of_cells_x_y().1 as usize - 1,
+        },
+        &grid,
+    );
+
+    // println!("Mouse path: ");
+    // println!("{:?}", mouse_path);
+
+    animate_path(mouse_path, &grid).await;
 }
